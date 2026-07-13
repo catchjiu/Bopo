@@ -1,4 +1,5 @@
 import { ZHUYIN, CATEGORIES } from '../data/zhuyin.js';
+import { SENTENCES, PARAGRAPHS } from '../data/readings.js';
 
 const STORAGE_KEY = 'bopo-learned';
 
@@ -22,6 +23,77 @@ function speak(text, lang = 'zh-TW') {
   utterance.rate = 0.85;
   currentUtterance = utterance;
   synth.speak(utterance);
+}
+
+function readingText(syllables) {
+  return syllables.map((s) => s.hanzi).join('');
+}
+
+function renderRuby(syllables) {
+  return syllables
+    .map(({ hanzi, zhuyin }) => {
+      const punct = !zhuyin;
+      if (punct) {
+        return `<ruby class="punct">${hanzi}<rt></rt></ruby>`;
+      }
+      return `<ruby>${hanzi}<rt>${zhuyin}</rt></ruby>`;
+    })
+    .join('');
+}
+
+function renderReadingContent(container, item) {
+  if (!item) {
+    container.className = 'reading-content empty';
+    container.innerHTML = 'Select an item above';
+    return;
+  }
+
+  container.className = 'reading-content';
+  container.innerHTML = `
+    <div class="reading-meta">
+      <p class="reading-meaning">${item.meaning}</p>
+      <button class="btn btn-primary btn-reading-play" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+        Listen
+      </button>
+    </div>
+    <p class="reading-ruby-line">${renderRuby(item.syllables)}</p>
+  `;
+
+  container.querySelector('.btn-reading-play').addEventListener('click', () => {
+    speak(readingText(item.syllables));
+  });
+}
+
+function initReadings() {
+  const sentenceSelect = $('#sentence-select');
+  const paragraphSelect = $('#paragraph-select');
+
+  sentenceSelect.innerHTML = `
+    <option value="">— Select a sentence —</option>
+    ${SENTENCES.map((s) => `<option value="${s.id}">${s.title}</option>`).join('')}
+  `;
+
+  paragraphSelect.innerHTML = `
+    <option value="">— Select a paragraph —</option>
+    ${PARAGRAPHS.map((p) => `<option value="${p.id}">${p.title}</option>`).join('')}
+  `;
+
+  const sentenceContent = $('#sentence-content');
+  const paragraphContent = $('#paragraph-content');
+
+  renderReadingContent(sentenceContent, null);
+  renderReadingContent(paragraphContent, null);
+
+  sentenceSelect.addEventListener('change', () => {
+    const item = SENTENCES.find((s) => s.id === sentenceSelect.value) || null;
+    renderReadingContent(sentenceContent, item);
+  });
+
+  paragraphSelect.addEventListener('change', () => {
+    const item = PARAGRAPHS.find((p) => p.id === paragraphSelect.value) || null;
+    renderReadingContent(paragraphContent, item);
+  });
 }
 
 function saveLearned() {
@@ -290,6 +362,7 @@ function init() {
   renderTabs();
   renderGrid();
   renderDetail();
+  initReadings();
   updateProgress();
   bindEvents();
 }

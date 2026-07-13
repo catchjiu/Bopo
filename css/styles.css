@@ -523,6 +523,128 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* ── Readings ── */
+.readings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .readings {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reading-card {
+  background: var(--surface);
+  border-radius: calc(var(--radius) + 4px);
+  box-shadow: var(--shadow-lg);
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.reading-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.reading-header p {
+  margin: 0.25rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.reading-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.reading-select {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b6560' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  padding-right: 2.25rem;
+}
+
+.reading-content {
+  min-height: 120px;
+}
+
+.reading-content.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  background: var(--surface-alt);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+}
+
+.reading-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.reading-meaning {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.reading-ruby-line {
+  font-family: var(--font-zhuyin);
+  font-size: 1.5rem;
+  line-height: 2.2;
+  word-break: break-all;
+}
+
+.reading-card:last-child .reading-ruby-line {
+  font-size: 1.35rem;
+  line-height: 2.4;
+}
+
+ruby {
+  ruby-align: center;
+}
+
+ruby rt {
+  font-size: 0.55em;
+  color: var(--accent);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+ruby.punct {
+  ruby-position: under;
+}
+
+ruby.punct rt {
+  visibility: hidden;
+  height: 0;
+}
+
 /* ── Footer ── */
 .footer {
   text-align: center;
