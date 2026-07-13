@@ -288,7 +288,9 @@ function sizeWriteCanvas() {
 
 function setCanvasOutline(char) {
   const outlineText = $('#canvas-outline-text');
-  if (outlineText) outlineText.textContent = char;
+  if (outlineText) {
+    outlineText.textContent = char;
+  }
   canvasChar = char;
 }
 
