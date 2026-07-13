@@ -65,27 +65,65 @@ function renderTabs() {
   });
 }
 
+function selectCharacter(index, { scroll = true } = {}) {
+  state.selectedIndex = index;
+  renderGrid();
+  renderDetail();
+  if (scroll) {
+    $('.detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function randomExample(item) {
+  return item.examples[Math.floor(Math.random() * item.examples.length)];
+}
+
+function flashCharButton(btn, className) {
+  btn.classList.add(className);
+  setTimeout(() => btn.classList.remove(className), 350);
+}
+
+function bindCharButton(btn) {
+  const index = Number(btn.dataset.index);
+  const item = ZHUYIN[index];
+  let clickTimer = null;
+
+  btn.addEventListener('click', () => {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      const example = randomExample(item);
+      speak(example.word);
+      flashCharButton(btn, 'char-btn-example');
+      selectCharacter(index);
+      return;
+    }
+
+    clickTimer = setTimeout(() => {
+      clickTimer = null;
+      speak(item.char);
+      flashCharButton(btn, 'char-btn-speak');
+      selectCharacter(index);
+    }, 280);
+  });
+}
+
 function renderGrid() {
   const chars = filteredChars();
   const grid = $('.grid');
-  grid.innerHTML = chars
-    .map((c) => {
-      const idx = globalIndex(c);
-      const isActive = state.selectedIndex === idx;
-      const isLearned = state.learned.has(c.char);
-      return `<button class="char-btn${isActive ? ' active' : ''}${isLearned ? ' learned' : ''}"
-        data-index="${idx}" aria-label="${c.char} (${c.pinyin})">${c.char}</button>`;
-    })
-    .join('');
+  grid.innerHTML = `
+    <p class="grid-hint">Click to pronounce · Double-click for an example word</p>
+    ${chars
+      .map((c) => {
+        const idx = globalIndex(c);
+        const isActive = state.selectedIndex === idx;
+        const isLearned = state.learned.has(c.char);
+        return `<button class="char-btn${isActive ? ' active' : ''}${isLearned ? ' learned' : ''}"
+          data-index="${idx}" aria-label="${c.char} (${c.pinyin}): click to pronounce, double-click for example">${c.char}</button>`;
+      })
+      .join('')}`;
 
-  grid.querySelectorAll('.char-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.selectedIndex = Number(btn.dataset.index);
-      renderGrid();
-      renderDetail();
-      $('.detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-  });
+  grid.querySelectorAll('.char-btn').forEach(bindCharButton);
 }
 
 let canvas, ctx, drawing = false;
@@ -206,11 +244,9 @@ function updateNavButtons() {
 function navigate(delta) {
   const newIndex = state.selectedIndex + delta;
   if (newIndex < 0 || newIndex >= ZHUYIN.length) return;
-  state.selectedIndex = newIndex;
   state.category = ZHUYIN[newIndex].category;
   renderTabs();
-  renderGrid();
-  renderDetail();
+  selectCharacter(newIndex, { scroll: false });
 }
 
 function bindEvents() {

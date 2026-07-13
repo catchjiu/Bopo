@@ -145,6 +145,14 @@ body {
   margin-bottom: 2rem;
 }
 
+.grid-hint {
+  grid-column: 1 / -1;
+  margin: 0 0 0.35rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .char-btn {
   aspect-ratio: 1;
   display: flex;
@@ -181,6 +189,16 @@ body {
   height: 8px;
   background: #2d8a4e;
   border-radius: 50%;
+}
+
+.char-btn.char-btn-speak {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.char-btn.char-btn-example {
+  background: #e8f2ff;
+  border-color: #3b6fc2;
 }
 
 /* ── Detail panel ── */
