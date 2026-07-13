@@ -612,37 +612,80 @@ body {
   color: var(--text-muted);
 }
 
+.reading-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .reading-ruby-line {
   font-family: var(--font-zhuyin);
   font-size: 1.5rem;
-  line-height: 2.2;
+  line-height: 1;
   word-break: break-all;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.1rem;
+  align-items: flex-end;
 }
 
 .reading-card:last-child .reading-ruby-line {
   font-size: 1.35rem;
-  line-height: 2.4;
 }
 
-ruby {
-  ruby-align: center;
+.ruby-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 1.6em;
+  padding: 0.35rem 0.15rem 0.25rem;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-zhuyin);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
 }
 
-ruby rt {
+.ruby-btn:hover {
+  border-color: var(--border);
+  background: var(--surface-alt);
+}
+
+.ruby-zhuyin {
   font-size: 0.55em;
   color: var(--accent);
   font-weight: 500;
-  letter-spacing: 0;
   line-height: 1.2;
+  margin-bottom: 0.15rem;
 }
 
-ruby.punct {
-  ruby-position: under;
+.ruby-hanzi {
+  font-size: 1em;
+  line-height: 1.1;
+  color: var(--text);
 }
 
-ruby.punct rt {
-  visibility: hidden;
-  height: 0;
+.ruby-btn.ruby-btn-speak {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.ruby-btn.ruby-btn-example {
+  background: #e8f2ff;
+  border-color: #3b6fc2;
+}
+
+.ruby-punct {
+  display: inline-flex;
+  align-items: flex-end;
+  padding: 0.35rem 0.05rem 0.25rem;
+  font-size: 1em;
+  line-height: 1.1;
+  color: var(--text);
 }
 
 /* ── Footer ── */

@@ -29,16 +29,67 @@ function readingText(syllables) {
   return syllables.map((s) => s.hanzi).join('');
 }
 
+function flashButton(btn, className) {
+  btn.classList.add(className);
+  setTimeout(() => btn.classList.remove(className), 350);
+}
+
+function exampleWordForChar(hanzi) {
+  for (const z of ZHUYIN) {
+    for (const ex of z.examples) {
+      if (ex.word.includes(hanzi)) return ex.word;
+    }
+  }
+  return null;
+}
+
+function bindClickAudio(el, { onSingle, onDouble, flashSingle, flashDouble }) {
+  let clickTimer = null;
+
+  el.addEventListener('click', () => {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      onDouble();
+      flashButton(el, flashDouble);
+      return;
+    }
+
+    clickTimer = setTimeout(() => {
+      clickTimer = null;
+      onSingle();
+      flashButton(el, flashSingle);
+    }, 280);
+  });
+}
+
 function renderRuby(syllables) {
   return syllables
     .map(({ hanzi, zhuyin }) => {
-      const punct = !zhuyin;
-      if (punct) {
-        return `<ruby class="punct">${hanzi}<rt></rt></ruby>`;
+      if (!zhuyin) {
+        return `<span class="ruby-punct">${hanzi}</span>`;
       }
-      return `<ruby>${hanzi}<rt>${zhuyin}</rt></ruby>`;
+      return `<button type="button" class="ruby-btn" data-hanzi="${hanzi}" aria-label="${hanzi} (${zhuyin}): click to pronounce, double-click for example word">
+        <span class="ruby-zhuyin">${zhuyin}</span>
+        <span class="ruby-hanzi">${hanzi}</span>
+      </button>`;
     })
     .join('');
+}
+
+function bindReadingSyllables(container, item) {
+  const fullText = readingText(item.syllables);
+
+  container.querySelectorAll('.ruby-btn').forEach((btn) => {
+    const hanzi = btn.dataset.hanzi;
+
+    bindClickAudio(btn, {
+      onSingle: () => speak(hanzi),
+      onDouble: () => speak(exampleWordForChar(hanzi) || fullText),
+      flashSingle: 'ruby-btn-speak',
+      flashDouble: 'ruby-btn-example',
+    });
+  });
 }
 
 function renderReadingContent(container, item) {
@@ -57,12 +108,15 @@ function renderReadingContent(container, item) {
         Listen
       </button>
     </div>
+    <p class="reading-hint">Click a character to hear it · Double-click for an example word</p>
     <p class="reading-ruby-line">${renderRuby(item.syllables)}</p>
   `;
 
   container.querySelector('.btn-reading-play').addEventListener('click', () => {
     speak(readingText(item.syllables));
   });
+
+  bindReadingSyllables(container, item);
 }
 
 function initReadings() {
@@ -151,32 +205,25 @@ function randomExample(item) {
 }
 
 function flashCharButton(btn, className) {
-  btn.classList.add(className);
-  setTimeout(() => btn.classList.remove(className), 350);
+  flashButton(btn, className);
 }
 
 function bindCharButton(btn) {
   const index = Number(btn.dataset.index);
   const item = ZHUYIN[index];
-  let clickTimer = null;
 
-  btn.addEventListener('click', () => {
-    if (clickTimer) {
-      clearTimeout(clickTimer);
-      clickTimer = null;
+  bindClickAudio(btn, {
+    onSingle: () => {
+      speak(item.char);
+      selectCharacter(index);
+    },
+    onDouble: () => {
       const example = randomExample(item);
       speak(example.word);
-      flashCharButton(btn, 'char-btn-example');
       selectCharacter(index);
-      return;
-    }
-
-    clickTimer = setTimeout(() => {
-      clickTimer = null;
-      speak(item.char);
-      flashCharButton(btn, 'char-btn-speak');
-      selectCharacter(index);
-    }, 280);
+    },
+    flashSingle: 'char-btn-speak',
+    flashDouble: 'char-btn-example',
   });
 }
 
