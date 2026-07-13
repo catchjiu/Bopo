@@ -12,6 +12,21 @@ A small web app to help you learn all **37 Zhuyin (注音 / Bopomofo)** characte
 
 ## Quick start
 
+### Docker / Coolify
+
+Build and run locally:
+
+```bash
+docker build -t bopo .
+docker run -p 8080:80 bopo
+```
+
+Then open [http://localhost:8080](http://localhost:8080).
+
+**Coolify:** create a new application, point it at this repo, and use the included `Dockerfile`. Coolify will build the image and expose port **80** — no extra configuration needed.
+
+### Local development
+
 Because the app uses ES modules, serve it with any static file server:
 
 ```bash
