@@ -455,3 +455,5 @@ export const ZHUYIN = [
     ],
   },
 ];
+
+export { SENTENCES, PARAGRAPHS } from './readings.js';

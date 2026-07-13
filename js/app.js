@@ -1,5 +1,4 @@
-import { ZHUYIN, CATEGORIES } from '../data/zhuyin.js';
-import { SENTENCES, PARAGRAPHS } from '../data/readings.js';
+import { ZHUYIN, CATEGORIES, SENTENCES, PARAGRAPHS } from '../data/zhuyin.js';
 
 const STORAGE_KEY = 'bopo-learned';
 
@@ -122,19 +121,32 @@ function renderReadingContent(container, item) {
 function initReadings() {
   const sentenceSelect = $('#sentence-select');
   const paragraphSelect = $('#paragraph-select');
-
-  sentenceSelect.innerHTML = `
-    <option value="">— Select a sentence —</option>
-    ${SENTENCES.map((s) => `<option value="${s.id}">${s.title}</option>`).join('')}
-  `;
-
-  paragraphSelect.innerHTML = `
-    <option value="">— Select a paragraph —</option>
-    ${PARAGRAPHS.map((p) => `<option value="${p.id}">${p.title}</option>`).join('')}
-  `;
-
   const sentenceContent = $('#sentence-content');
   const paragraphContent = $('#paragraph-content');
+
+  if (!sentenceSelect || !paragraphSelect || !sentenceContent || !paragraphContent) return;
+
+  if (!SENTENCES?.length || !PARAGRAPHS?.length) {
+    sentenceContent.className = 'reading-content empty';
+    sentenceContent.textContent = 'Readings failed to load — please refresh';
+    paragraphContent.className = 'reading-content empty';
+    paragraphContent.textContent = 'Readings failed to load — please refresh';
+    return;
+  }
+
+  const syncOptions = (select, items, placeholder) => {
+    const current = select.value;
+    select.innerHTML = `
+      <option value="">${placeholder}</option>
+      ${items.map((item) => `<option value="${item.id}">${item.title}</option>`).join('')}
+    `;
+    if (current && items.some((item) => item.id === current)) {
+      select.value = current;
+    }
+  };
+
+  syncOptions(sentenceSelect, SENTENCES, '— Select a sentence —');
+  syncOptions(paragraphSelect, PARAGRAPHS, '— Select a paragraph —');
 
   renderReadingContent(sentenceContent, null);
   renderReadingContent(paragraphContent, null);

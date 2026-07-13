@@ -96,7 +96,19 @@
           <p>Beginner sentences with Zhuyin above each character</p>
         </div>
         <label class="reading-label" for="sentence-select">Choose a sentence</label>
-        <select id="sentence-select" class="reading-select"></select>
+        <select id="sentence-select" class="reading-select">
+          <option value="">— Select a sentence —</option>
+          <option value="hello">你好嗎？</option>
+          <option value="fine">我很好。</option>
+          <option value="thanks">謝謝你。</option>
+          <option value="what">這是什麼？</option>
+          <option value="student">我是學生。</option>
+          <option value="weather">今天天氣很好。</option>
+          <option value="apple">我喜歡吃蘋果。</option>
+          <option value="time">現在幾點？</option>
+          <option value="come-in">請進來。</option>
+          <option value="goodbye">明天見！</option>
+        </select>
         <div id="sentence-content" class="reading-content"></div>
       </div>
 
@@ -106,7 +118,14 @@
           <p>Simple paragraphs with Zhuyin above each character</p>
         </div>
         <label class="reading-label" for="paragraph-select">Choose a paragraph</label>
-        <select id="paragraph-select" class="reading-select"></select>
+        <select id="paragraph-select" class="reading-select">
+          <option value="">— Select a paragraph —</option>
+          <option value="intro">自我介紹</option>
+          <option value="morning">我的早晨</option>
+          <option value="family">我的家人</option>
+          <option value="school">在學校</option>
+          <option value="weekend">週末計畫</option>
+        </select>
         <div id="paragraph-content" class="reading-content"></div>
       </div>
     </section>
@@ -116,6 +135,6 @@
     Bopo — a simple Zhuyin learning tool. Progress is saved in your browser.
   </footer>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>
