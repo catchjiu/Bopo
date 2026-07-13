@@ -265,32 +265,39 @@ let canvasChar = '';
 let strokePoints = 0;
 let strokeDistance = 0;
 let lastStrokePos = null;
-let canvasSetupToken = 0;
+let canvasReady = false;
+let touchActive = false;
 
-const MIN_STROKE_POINTS = 8;
-const MIN_STROKE_DISTANCE = 24;
+const CANVAS_SIZE = 280;
+const MIN_STROKE_POINTS = 5;
+const MIN_STROKE_DISTANCE = 18;
 
 function sizeWriteCanvas() {
-  const wrap = $('#canvas-wrap');
-  if (!wrap || !writeCanvas || !writeCtx) return false;
-
-  const w = wrap.clientWidth;
-  const h = wrap.clientHeight;
-  if (w < 20 || h < 20) return false;
+  if (!writeCanvas || !writeCtx) return false;
 
   const dpr = window.devicePixelRatio || 1;
-  writeCanvas.width = Math.round(w * dpr);
-  writeCanvas.height = Math.round(h * dpr);
+  writeCanvas.width = Math.round(CANVAS_SIZE * dpr);
+  writeCanvas.height = Math.round(CANVAS_SIZE * dpr);
   writeCtx.setTransform(1, 0, 0, 1, 0, 0);
   writeCtx.scale(dpr, dpr);
-  writeCanvas.style.width = `${w}px`;
-  writeCanvas.style.height = `${h}px`;
+  writeCanvas.style.width = `${CANVAS_SIZE}px`;
+  writeCanvas.style.height = `${CANVAS_SIZE}px`;
+  canvasReady = true;
   return true;
+}
+
+function setCanvasOutline(char) {
+  const outlineText = $('#canvas-outline-text');
+  if (outlineText) outlineText.textContent = char;
+  canvasChar = char;
 }
 
 function getCanvasPos(clientX, clientY) {
   const rect = writeCanvas.getBoundingClientRect();
-  return { x: clientX - rect.left, y: clientY - rect.top };
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+  };
 }
 
 function strokeDistanceBetween(a, b) {
@@ -316,7 +323,7 @@ function finishStroke() {
 }
 
 function beginStroke(x, y) {
-  if (!writeCtx) return;
+  if (!writeCtx || !canvasReady) return;
   drawing = true;
   strokePoints = 1;
   strokeDistance = 0;
@@ -333,7 +340,7 @@ function continueStroke(x, y) {
   strokePoints += 1;
   lastStrokePos = { x, y };
 
-  writeCtx.lineWidth = 6;
+  writeCtx.lineWidth = 7;
   writeCtx.lineCap = 'round';
   writeCtx.lineJoin = 'round';
   writeCtx.strokeStyle = '#c23b22';
@@ -342,71 +349,72 @@ function continueStroke(x, y) {
 }
 
 function bindCanvasDrawing() {
-  if (!writeCanvas) return;
+  const wrap = $('#canvas-wrap');
+  writeCanvas = $('#write-canvas');
+  if (!wrap || !writeCanvas) return;
 
-  writeCanvas.onpointerdown = (e) => {
+  writeCtx = writeCanvas.getContext('2d');
+  sizeWriteCanvas();
+
+  const pointFromEvent = (e) => {
+    const touch = e.touches?.[0] ?? e.changedTouches?.[0];
+    if (touch) return getCanvasPos(touch.clientX, touch.clientY);
+    return getCanvasPos(e.clientX, e.clientY);
+  };
+
+  const onStart = (e) => {
+    if (e.type === 'mousedown' && touchActive) return;
     e.preventDefault();
-    writeCanvas.setPointerCapture(e.pointerId);
-    const pos = getCanvasPos(e.clientX, e.clientY);
+    e.stopPropagation();
+    const pos = pointFromEvent(e);
     beginStroke(pos.x, pos.y);
   };
 
-  writeCanvas.onpointermove = (e) => {
+  const onMove = (e) => {
     if (!drawing) return;
     e.preventDefault();
-    const pos = getCanvasPos(e.clientX, e.clientY);
+    e.stopPropagation();
+    const pos = pointFromEvent(e);
     continueStroke(pos.x, pos.y);
   };
 
-  const endPointer = (e) => {
+  const onEnd = (e) => {
     e.preventDefault();
-    if (writeCanvas.hasPointerCapture?.(e.pointerId)) {
-      writeCanvas.releasePointerCapture(e.pointerId);
-    }
+    e.stopPropagation();
+    if (e.type.startsWith('touch')) touchActive = false;
     finishStroke();
   };
 
-  writeCanvas.onpointerup = endPointer;
-  writeCanvas.onpointercancel = endPointer;
+  wrap.addEventListener('touchstart', (e) => {
+    touchActive = true;
+    onStart(e);
+  }, { passive: false });
+  wrap.addEventListener('touchmove', onMove, { passive: false });
+  wrap.addEventListener('touchend', onEnd, { passive: false });
+  wrap.addEventListener('touchcancel', onEnd, { passive: false });
+
+  writeCanvas.addEventListener('mousedown', onStart);
+  writeCanvas.addEventListener('mousemove', (e) => {
+    if (!drawing) return;
+    onMove(e);
+  });
+  writeCanvas.addEventListener('mouseup', onEnd);
+  writeCanvas.addEventListener('mouseleave', () => {
+    if (drawing) finishStroke();
+  });
 }
 
-function initCanvas(char) {
-  const wrap = $('#canvas-wrap');
-  const outline = $('#canvas-outline');
-  writeCanvas = $('#write-canvas');
-  if (!wrap || !outline || !writeCanvas) return;
-
-  canvasChar = char;
-  outline.textContent = char;
-  writeCtx = writeCanvas.getContext('2d');
-
-  const token = ++canvasSetupToken;
-
-  const setup = () => {
-    if (token !== canvasSetupToken) return;
-    if (!sizeWriteCanvas()) {
-      requestAnimationFrame(setup);
-      return;
-    }
-    clearCanvas();
-  };
-
-  bindCanvasDrawing();
-  setup();
-  requestAnimationFrame(setup);
-  setTimeout(setup, 50);
-  setTimeout(setup, 200);
-
-  if (document.fonts?.ready) {
-    document.fonts.ready.then(setup);
+function setupWritingPractice(char) {
+  setCanvasOutline(char);
+  clearCanvas();
+  if (!canvasReady) {
+    sizeWriteCanvas();
   }
 }
 
 function clearCanvas() {
-  if (!writeCtx || !writeCanvas) return;
-  const wrap = $('#canvas-wrap');
-  if (!wrap) return;
-  writeCtx.clearRect(0, 0, wrap.clientWidth, wrap.clientHeight);
+  if (!writeCtx) return;
+  writeCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   $('#canvas-wrap')?.classList.remove('canvas-done');
 }
 
@@ -461,9 +469,8 @@ function renderDetail() {
     });
   });
 
-  requestAnimationFrame(() => {
-    setTimeout(() => initCanvas(item.char), 100);
-  });
+  setupWritingPractice(item.char);
+
   updateNavButtons();
 }
 
@@ -534,6 +541,7 @@ function init() {
   initReadings();
   updateProgress();
   bindEvents();
+  bindCanvasDrawing();
 }
 
 init();
