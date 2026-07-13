@@ -62,9 +62,10 @@
           <h3>Writing practice</h3>
           <p class="pronunciation-tip"></p>
           <ol class="strokes"></ol>
-          <div class="canvas-wrap">
-            <span class="canvas-guide" aria-hidden="true"></span>
-            <canvas id="write-canvas"></canvas>
+          <p class="canvas-hint">Trace the outline with your finger — you'll hear the pronunciation when you finish</p>
+          <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="guide-canvas" class="canvas-guide-layer" aria-hidden="true"></canvas>
+            <canvas id="write-canvas" class="canvas-draw-layer" aria-label="Writing practice canvas"></canvas>
           </div>
           <div class="canvas-actions">
             <button class="btn btn-secondary btn-clear-canvas" type="button">Clear canvas</button>
@@ -135,7 +136,7 @@
     Bopo — a simple Zhuyin learning tool. Progress is saved in your browser.
   </footer>
 
-  <script src="js/data.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/data.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>

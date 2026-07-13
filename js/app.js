@@ -259,57 +259,153 @@ function renderGrid() {
   grid.querySelectorAll('.char-btn').forEach(bindCharButton);
 }
 
-let canvas, ctx, drawing = false;
+let guideCanvas, writeCanvas, guideCtx, writeCtx;
+let drawing = false;
+let canvasChar = '';
+let strokePoints = 0;
+let strokeDistance = 0;
+let lastStrokePos = null;
 
-function initCanvas(char) {
-  canvas = $('#write-canvas');
-  if (!canvas) return;
-  ctx = canvas.getContext('2d');
+const CANVAS_FONT = '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif';
+const MIN_STROKE_POINTS = 8;
+const MIN_STROKE_DISTANCE = 24;
 
+function setupCanvasSize(canvas, ctx) {
   const rect = canvas.parentElement.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(dpr, dpr);
   canvas.style.width = `${rect.width}px`;
   canvas.style.height = `${rect.height}px`;
-
-  ctx.clearRect(0, 0, rect.width, rect.height);
-  $('.canvas-guide').textContent = char;
-
-  canvas.onpointerdown = (e) => {
-    drawing = true;
-    canvas.setPointerCapture(e.pointerId);
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
-
-  canvas.onpointermove = (e) => {
-    if (!drawing) return;
-    const pos = getPos(e);
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#c23b22';
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  };
-
-  canvas.onpointerup = canvas.onpointercancel = () => {
-    drawing = false;
-  };
+  return rect;
 }
 
-function getPos(e) {
+function drawGuideOutline(char) {
+  if (!guideCtx || !guideCanvas) return;
+  const rect = guideCanvas.parentElement.getBoundingClientRect();
+  guideCtx.clearRect(0, 0, rect.width, rect.height);
+
+  const fontSize = Math.min(rect.width, rect.height) * 0.72;
+  guideCtx.font = `700 ${fontSize}px ${CANVAS_FONT}`;
+  guideCtx.textAlign = 'center';
+  guideCtx.textBaseline = 'middle';
+  const x = rect.width / 2;
+  const y = rect.height / 2;
+
+  guideCtx.fillStyle = 'rgba(194, 59, 34, 0.07)';
+  guideCtx.fillText(char, x, y);
+
+  guideCtx.lineWidth = Math.max(2.5, fontSize * 0.045);
+  guideCtx.strokeStyle = 'rgba(194, 59, 34, 0.32)';
+  guideCtx.lineJoin = 'round';
+  guideCtx.strokeText(char, x, y);
+}
+
+function getCanvasPos(e, canvas) {
   const rect = canvas.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
+function strokeDistanceBetween(a, b) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function markCanvasDone() {
+  const wrap = $('#canvas-wrap');
+  if (!wrap) return;
+  wrap.classList.add('canvas-done');
+  setTimeout(() => wrap.classList.remove('canvas-done'), 700);
+}
+
+function finishStroke() {
+  if (strokePoints >= MIN_STROKE_POINTS || strokeDistance >= MIN_STROKE_DISTANCE) {
+    speak(canvasChar);
+    markCanvasDone();
+  }
+  drawing = false;
+  strokePoints = 0;
+  strokeDistance = 0;
+  lastStrokePos = null;
+}
+
+function initCanvas(char) {
+  guideCanvas = $('#guide-canvas');
+  writeCanvas = $('#write-canvas');
+  if (!guideCanvas || !writeCanvas) return;
+
+  canvasChar = char;
+  guideCtx = guideCanvas.getContext('2d');
+  writeCtx = writeCanvas.getContext('2d');
+
+  const setup = () => {
+    setupCanvasSize(guideCanvas, guideCtx);
+    setupCanvasSize(writeCanvas, writeCtx);
+    drawGuideOutline(char);
+    clearCanvas();
+  };
+
+  setup();
+  requestAnimationFrame(setup);
+
+  writeCanvas.onpointerdown = (e) => {
+    e.preventDefault();
+    drawing = true;
+    strokePoints = 0;
+    strokeDistance = 0;
+    lastStrokePos = null;
+    writeCanvas.setPointerCapture(e.pointerId);
+    const pos = getCanvasPos(e, writeCanvas);
+    writeCtx.beginPath();
+    writeCtx.moveTo(pos.x, pos.y);
+    lastStrokePos = pos;
+    strokePoints = 1;
+  };
+
+  writeCanvas.onpointermove = (e) => {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getCanvasPos(e, writeCanvas);
+    if (lastStrokePos) {
+      strokeDistance += strokeDistanceBetween(lastStrokePos, pos);
+    }
+    strokePoints += 1;
+    lastStrokePos = pos;
+
+    writeCtx.lineWidth = 5;
+    writeCtx.lineCap = 'round';
+    writeCtx.lineJoin = 'round';
+    writeCtx.strokeStyle = '#c23b22';
+    writeCtx.lineTo(pos.x, pos.y);
+    writeCtx.stroke();
+  };
+
+  writeCanvas.onpointerup = (e) => {
+    e.preventDefault();
+    if (writeCanvas.hasPointerCapture(e.pointerId)) {
+      writeCanvas.releasePointerCapture(e.pointerId);
+    }
+    finishStroke();
+  };
+
+  writeCanvas.onpointercancel = (e) => {
+    if (writeCanvas.hasPointerCapture(e.pointerId)) {
+      writeCanvas.releasePointerCapture(e.pointerId);
+    }
+    finishStroke();
+  };
+
+  writeCanvas.onpointerleave = () => {
+    if (drawing) finishStroke();
+  };
+}
+
 function clearCanvas() {
-  if (!ctx || !canvas) return;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  ctx.clearRect(0, 0, rect.width, rect.height);
+  if (!writeCtx || !writeCanvas) return;
+  const rect = writeCanvas.parentElement.getBoundingClientRect();
+  writeCtx.clearRect(0, 0, rect.width, rect.height);
+  $('#canvas-wrap')?.classList.remove('canvas-done');
 }
 
 function renderDetail() {
