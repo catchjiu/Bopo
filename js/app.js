@@ -1,4 +1,4 @@
-import { ZHUYIN, CATEGORIES, SENTENCES, PARAGRAPHS } from '../data/zhuyin.js';
+const { ZHUYIN, CATEGORIES, SENTENCES, PARAGRAPHS } = window.BOPO || {};
 
 const STORAGE_KEY = 'bopo-learned';
 
@@ -148,18 +148,20 @@ function initReadings() {
   syncOptions(sentenceSelect, SENTENCES, '— Select a sentence —');
   syncOptions(paragraphSelect, PARAGRAPHS, '— Select a paragraph —');
 
-  renderReadingContent(sentenceContent, null);
-  renderReadingContent(paragraphContent, null);
-
-  sentenceSelect.addEventListener('change', () => {
+  const handleSentenceChange = () => {
     const item = SENTENCES.find((s) => s.id === sentenceSelect.value) || null;
     renderReadingContent(sentenceContent, item);
-  });
+  };
 
-  paragraphSelect.addEventListener('change', () => {
+  const handleParagraphChange = () => {
     const item = PARAGRAPHS.find((p) => p.id === paragraphSelect.value) || null;
     renderReadingContent(paragraphContent, item);
-  });
+  };
+
+  sentenceSelect.addEventListener('change', handleSentenceChange);
+  sentenceSelect.addEventListener('input', handleSentenceChange);
+  paragraphSelect.addEventListener('change', handleParagraphChange);
+  paragraphSelect.addEventListener('input', handleParagraphChange);
 }
 
 function saveLearned() {
@@ -414,6 +416,14 @@ function bindEvents() {
 }
 
 function init() {
+  if (!window.BOPO) {
+    document.body.insertAdjacentHTML(
+      'afterbegin',
+      '<div style="background:#fde8e4;color:#a32f1a;padding:1rem;text-align:center;font-weight:600;">App failed to load — please refresh the page</div>'
+    );
+    return;
+  }
+
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   document.addEventListener('gesturechange', (e) => e.preventDefault());
   document.addEventListener('gestureend', (e) => e.preventDefault());
