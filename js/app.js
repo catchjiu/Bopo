@@ -259,53 +259,38 @@ function renderGrid() {
   grid.querySelectorAll('.char-btn').forEach(bindCharButton);
 }
 
-let guideCanvas, writeCanvas, guideCtx, writeCtx;
+let writeCanvas, writeCtx;
 let drawing = false;
 let canvasChar = '';
 let strokePoints = 0;
 let strokeDistance = 0;
 let lastStrokePos = null;
+let canvasSetupToken = 0;
 
-const CANVAS_FONT = '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif';
 const MIN_STROKE_POINTS = 8;
 const MIN_STROKE_DISTANCE = 24;
 
-function setupCanvasSize(canvas, ctx) {
-  const rect = canvas.parentElement.getBoundingClientRect();
+function sizeWriteCanvas() {
+  const wrap = $('#canvas-wrap');
+  if (!wrap || !writeCanvas || !writeCtx) return false;
+
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (w < 20 || h < 20) return false;
+
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.scale(dpr, dpr);
-  canvas.style.width = `${rect.width}px`;
-  canvas.style.height = `${rect.height}px`;
-  return rect;
+  writeCanvas.width = Math.round(w * dpr);
+  writeCanvas.height = Math.round(h * dpr);
+  writeCtx.setTransform(1, 0, 0, 1, 0, 0);
+  writeCtx.scale(dpr, dpr);
+  writeCanvas.style.width = `${w}px`;
+  writeCanvas.style.height = `${h}px`;
+  return true;
 }
 
-function drawGuideOutline(char) {
-  if (!guideCtx || !guideCanvas) return;
-  const rect = guideCanvas.parentElement.getBoundingClientRect();
-  guideCtx.clearRect(0, 0, rect.width, rect.height);
-
-  const fontSize = Math.min(rect.width, rect.height) * 0.72;
-  guideCtx.font = `700 ${fontSize}px ${CANVAS_FONT}`;
-  guideCtx.textAlign = 'center';
-  guideCtx.textBaseline = 'middle';
-  const x = rect.width / 2;
-  const y = rect.height / 2;
-
-  guideCtx.fillStyle = 'rgba(194, 59, 34, 0.07)';
-  guideCtx.fillText(char, x, y);
-
-  guideCtx.lineWidth = Math.max(2.5, fontSize * 0.045);
-  guideCtx.strokeStyle = 'rgba(194, 59, 34, 0.32)';
-  guideCtx.lineJoin = 'round';
-  guideCtx.strokeText(char, x, y);
-}
-
-function getCanvasPos(e, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+function getCanvasPos(clientX, clientY) {
+  const rect = writeCanvas.getBoundingClientRect();
+  return { x: clientX - rect.left, y: clientY - rect.top };
 }
 
 function strokeDistanceBetween(a, b) {
@@ -330,81 +315,98 @@ function finishStroke() {
   lastStrokePos = null;
 }
 
-function initCanvas(char) {
-  guideCanvas = $('#guide-canvas');
-  writeCanvas = $('#write-canvas');
-  if (!guideCanvas || !writeCanvas) return;
+function beginStroke(x, y) {
+  if (!writeCtx) return;
+  drawing = true;
+  strokePoints = 1;
+  strokeDistance = 0;
+  lastStrokePos = { x, y };
+  writeCtx.beginPath();
+  writeCtx.moveTo(x, y);
+}
 
-  canvasChar = char;
-  guideCtx = guideCanvas.getContext('2d');
-  writeCtx = writeCanvas.getContext('2d');
+function continueStroke(x, y) {
+  if (!drawing || !writeCtx) return;
+  if (lastStrokePos) {
+    strokeDistance += strokeDistanceBetween(lastStrokePos, { x, y });
+  }
+  strokePoints += 1;
+  lastStrokePos = { x, y };
 
-  const setup = () => {
-    setupCanvasSize(guideCanvas, guideCtx);
-    setupCanvasSize(writeCanvas, writeCtx);
-    drawGuideOutline(char);
-    clearCanvas();
-  };
+  writeCtx.lineWidth = 6;
+  writeCtx.lineCap = 'round';
+  writeCtx.lineJoin = 'round';
+  writeCtx.strokeStyle = '#c23b22';
+  writeCtx.lineTo(x, y);
+  writeCtx.stroke();
+}
 
-  setup();
-  requestAnimationFrame(setup);
+function bindCanvasDrawing() {
+  if (!writeCanvas) return;
 
   writeCanvas.onpointerdown = (e) => {
     e.preventDefault();
-    drawing = true;
-    strokePoints = 0;
-    strokeDistance = 0;
-    lastStrokePos = null;
     writeCanvas.setPointerCapture(e.pointerId);
-    const pos = getCanvasPos(e, writeCanvas);
-    writeCtx.beginPath();
-    writeCtx.moveTo(pos.x, pos.y);
-    lastStrokePos = pos;
-    strokePoints = 1;
+    const pos = getCanvasPos(e.clientX, e.clientY);
+    beginStroke(pos.x, pos.y);
   };
 
   writeCanvas.onpointermove = (e) => {
     if (!drawing) return;
     e.preventDefault();
-    const pos = getCanvasPos(e, writeCanvas);
-    if (lastStrokePos) {
-      strokeDistance += strokeDistanceBetween(lastStrokePos, pos);
-    }
-    strokePoints += 1;
-    lastStrokePos = pos;
-
-    writeCtx.lineWidth = 5;
-    writeCtx.lineCap = 'round';
-    writeCtx.lineJoin = 'round';
-    writeCtx.strokeStyle = '#c23b22';
-    writeCtx.lineTo(pos.x, pos.y);
-    writeCtx.stroke();
+    const pos = getCanvasPos(e.clientX, e.clientY);
+    continueStroke(pos.x, pos.y);
   };
 
-  writeCanvas.onpointerup = (e) => {
+  const endPointer = (e) => {
     e.preventDefault();
-    if (writeCanvas.hasPointerCapture(e.pointerId)) {
+    if (writeCanvas.hasPointerCapture?.(e.pointerId)) {
       writeCanvas.releasePointerCapture(e.pointerId);
     }
     finishStroke();
   };
 
-  writeCanvas.onpointercancel = (e) => {
-    if (writeCanvas.hasPointerCapture(e.pointerId)) {
-      writeCanvas.releasePointerCapture(e.pointerId);
+  writeCanvas.onpointerup = endPointer;
+  writeCanvas.onpointercancel = endPointer;
+}
+
+function initCanvas(char) {
+  const wrap = $('#canvas-wrap');
+  const outline = $('#canvas-outline');
+  writeCanvas = $('#write-canvas');
+  if (!wrap || !outline || !writeCanvas) return;
+
+  canvasChar = char;
+  outline.textContent = char;
+  writeCtx = writeCanvas.getContext('2d');
+
+  const token = ++canvasSetupToken;
+
+  const setup = () => {
+    if (token !== canvasSetupToken) return;
+    if (!sizeWriteCanvas()) {
+      requestAnimationFrame(setup);
+      return;
     }
-    finishStroke();
+    clearCanvas();
   };
 
-  writeCanvas.onpointerleave = () => {
-    if (drawing) finishStroke();
-  };
+  bindCanvasDrawing();
+  setup();
+  requestAnimationFrame(setup);
+  setTimeout(setup, 50);
+  setTimeout(setup, 200);
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(setup);
+  }
 }
 
 function clearCanvas() {
   if (!writeCtx || !writeCanvas) return;
-  const rect = writeCanvas.parentElement.getBoundingClientRect();
-  writeCtx.clearRect(0, 0, rect.width, rect.height);
+  const wrap = $('#canvas-wrap');
+  if (!wrap) return;
+  writeCtx.clearRect(0, 0, wrap.clientWidth, wrap.clientHeight);
   $('#canvas-wrap')?.classList.remove('canvas-done');
 }
 
@@ -459,7 +461,9 @@ function renderDetail() {
     });
   });
 
-  requestAnimationFrame(() => initCanvas(item.char));
+  requestAnimationFrame(() => {
+    setTimeout(() => initCanvas(item.char), 100);
+  });
   updateNavButtons();
 }
 
