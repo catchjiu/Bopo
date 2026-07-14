@@ -1,11 +1,24 @@
 const { ZHUYIN, CATEGORIES, SENTENCES, PARAGRAPHS } = window.BOPO || {};
 
 const STORAGE_KEY = 'bopo-learned';
+const FLASH_STATS_KEY = 'bopo-flash-stats';
+const VALID_VIEWS = ['learning', 'flashcard', 'sentences'];
 
 const state = {
+  view: 'learning',
   category: 'initials',
   selectedIndex: null,
   learned: new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')),
+};
+
+const flashState = {
+  deck: [],
+  index: 0,
+  flipped: false,
+  know: 0,
+  miss: 0,
+  side: 'char',
+  active: false,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -168,6 +181,32 @@ function saveLearned() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...state.learned]));
 }
 
+function loadFlashStats() {
+  try {
+    return JSON.parse(localStorage.getItem(FLASH_STATS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveFlashStats(stats) {
+  localStorage.setItem(FLASH_STATS_KEY, JSON.stringify(stats));
+}
+
+function getCharStrength(char) {
+  const stats = loadFlashStats();
+  const entry = stats[char] || { know: 0, miss: 0 };
+  return (entry.know || 0) - (entry.miss || 0);
+}
+
+function recordFlashResult(char, knew) {
+  const stats = loadFlashStats();
+  if (!stats[char]) stats[char] = { know: 0, miss: 0 };
+  if (knew) stats[char].know += 1;
+  else stats[char].miss += 1;
+  saveFlashStats(stats);
+}
+
 function filteredChars() {
   return ZHUYIN.filter((c) => c.category === state.category);
 }
@@ -182,6 +221,57 @@ function updateProgress() {
   const pct = Math.round((done / total) * 100);
   $('.progress-fill').style.width = `${pct}%`;
   $('.progress-count').textContent = `${done} / ${total} learned`;
+
+  const navFill = $('.nav-progress-fill');
+  const navCount = $('.nav-progress-count');
+  if (navFill) navFill.style.width = `${pct}%`;
+  if (navCount) navCount.textContent = `${done}/${total}`;
+}
+
+function setView(view) {
+  if (!VALID_VIEWS.includes(view)) view = 'learning';
+  state.view = view;
+  document.body.dataset.view = view;
+
+  $$('.nav-link').forEach((btn) => {
+    const active = btn.dataset.view === view;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+
+  $$('[data-view-panel]').forEach((panel) => {
+    const active = panel.dataset.viewPanel === view;
+    panel.classList.toggle('view-active', active);
+    panel.hidden = !active;
+  });
+
+  if (view === 'flashcard' && !flashState.active) {
+    renderFlashSetup();
+  }
+
+  if (location.hash !== `#${view}`) {
+    history.replaceState(null, '', `#${view}`);
+  }
+}
+
+function initNavigation() {
+  $$('.nav-link, .brand').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const view = el.dataset.view;
+      if (view) setView(view);
+    });
+  });
+
+  const hash = location.hash.replace('#', '');
+  setView(VALID_VIEWS.includes(hash) ? hash : 'learning');
+
+  window.addEventListener('hashchange', () => {
+    const next = location.hash.replace('#', '');
+    if (VALID_VIEWS.includes(next) && next !== state.view) {
+      setView(next);
+    }
+  });
 }
 
 function renderTabs() {
@@ -216,10 +306,6 @@ function selectCharacter(index, { scroll = true } = {}) {
 
 function randomExample(item) {
   return item.examples[Math.floor(Math.random() * item.examples.length)];
-}
-
-function flashCharButton(btn, className) {
-  flashButton(btn, className);
 }
 
 function bindCharButton(btn) {
@@ -465,7 +551,7 @@ function renderDetail() {
     ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Learned`
     : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg> Mark learned`;
 
-  $('.example-play').forEach((btn) => {
+  $$('.example-play').forEach((btn) => {
     btn.addEventListener('click', () => {
       speak(item.examples[Number(btn.dataset.example)].word);
     });
@@ -489,6 +575,236 @@ function navigate(delta) {
   state.category = ZHUYIN[newIndex].category;
   renderTabs();
   selectCharacter(newIndex, { scroll: false });
+}
+
+function shuffle(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function buildFlashDeck(mode) {
+  let pool = [...ZHUYIN];
+
+  if (mode === 'initials' || mode === 'medials' || mode === 'finals') {
+    pool = pool.filter((c) => c.category === mode);
+  } else if (mode === 'unlearned') {
+    pool = pool.filter((c) => !state.learned.has(c.char));
+  } else if (mode === 'learned') {
+    pool = pool.filter((c) => state.learned.has(c.char));
+  } else if (mode === 'weak') {
+    pool = pool.filter((c) => getCharStrength(c.char) < 1);
+    if (!pool.length) pool = [...ZHUYIN];
+  }
+
+  // Weight weaker cards earlier when reviewing "all"
+  if (mode === 'all' || mode === 'weak') {
+    pool.sort((a, b) => getCharStrength(a.char) - getCharStrength(b.char));
+    const weak = pool.slice(0, Math.ceil(pool.length * 0.6));
+    const rest = pool.slice(Math.ceil(pool.length * 0.6));
+    return shuffle(weak).concat(shuffle(rest));
+  }
+
+  return shuffle(pool);
+}
+
+function renderFlashSetup() {
+  const stats = loadFlashStats();
+  const reviewed = Object.keys(stats).length;
+  const weak = ZHUYIN.filter((c) => getCharStrength(c.char) < 1).length;
+  const learned = state.learned.size;
+
+  $('#flash-stats-preview').innerHTML = `
+    <div class="stat-chip"><strong>${learned}</strong><span>Learned</span></div>
+    <div class="stat-chip"><strong>${reviewed}</strong><span>Reviewed</span></div>
+    <div class="stat-chip"><strong>${weak}</strong><span>Need work</span></div>
+  `;
+
+  $('#flash-setup').hidden = false;
+  $('#flash-session').hidden = true;
+  $('#flash-done').hidden = true;
+  flashState.active = false;
+}
+
+function currentFlashCard() {
+  return flashState.deck[flashState.index] || null;
+}
+
+function updateFlashProgress() {
+  const total = flashState.deck.length;
+  const current = Math.min(flashState.index + 1, total);
+  const pct = total ? Math.round((flashState.index / total) * 100) : 0;
+  $('#flash-progress-label').textContent = `${current} / ${total}`;
+  $('#flash-bar-fill').style.width = `${pct}%`;
+  $('#flash-know-count').textContent = String(flashState.know);
+  $('#flash-miss-count').textContent = String(flashState.miss);
+}
+
+function showFlashCard() {
+  const item = currentFlashCard();
+  if (!item) {
+    finishFlashSession();
+    return;
+  }
+
+  flashState.flipped = false;
+  const card = $('#flash-card');
+  card.classList.remove('flipped');
+
+  const front = $('#flash-front');
+  const backMain = $('#flash-back-main');
+  const backSub = $('#flash-back-sub');
+  const tip = $('#flash-back-tip');
+  const example = $('#flash-back-example');
+  const exampleWord = randomExample(item);
+
+  if (flashState.side === 'char') {
+    front.textContent = item.char;
+    front.classList.remove('is-pinyin');
+    backMain.textContent = item.pinyin;
+    backMain.classList.add('is-pinyin');
+    backSub.textContent = item.char;
+  } else {
+    front.textContent = item.pinyin;
+    front.classList.add('is-pinyin');
+    backMain.textContent = item.char;
+    backMain.classList.remove('is-pinyin');
+    backSub.textContent = `Pinyin: ${item.pinyin}`;
+  }
+
+  tip.textContent = item.tip;
+  example.textContent = `${exampleWord.word} · ${exampleWord.meaning}`;
+
+  $('#flash-flip').hidden = false;
+  $('#flash-grade').hidden = true;
+  updateFlashProgress();
+}
+
+function flipFlashCard() {
+  if (!flashState.active || !currentFlashCard()) return;
+  flashState.flipped = !flashState.flipped;
+  $('#flash-card').classList.toggle('flipped', flashState.flipped);
+  $('#flash-flip').hidden = flashState.flipped;
+  $('#flash-grade').hidden = !flashState.flipped;
+}
+
+function gradeFlashCard(knew) {
+  const item = currentFlashCard();
+  if (!item || !flashState.flipped) return;
+
+  recordFlashResult(item.char, knew);
+  if (knew) {
+    flashState.know += 1;
+    // Mark learned after consistent success
+    const strength = getCharStrength(item.char);
+    if (strength >= 2) {
+      state.learned.add(item.char);
+      saveLearned();
+      updateProgress();
+      renderGrid();
+    }
+  } else {
+    flashState.miss += 1;
+    // Re-queue missed cards later in the deck
+    if (flashState.index < flashState.deck.length - 1) {
+      const insertAt = Math.min(
+        flashState.deck.length,
+        flashState.index + 2 + Math.floor(Math.random() * 3)
+      );
+      flashState.deck.splice(insertAt, 0, item);
+    }
+  }
+
+  flashState.index += 1;
+  if (flashState.index >= flashState.deck.length) {
+    finishFlashSession();
+  } else {
+    showFlashCard();
+  }
+}
+
+function startFlashSession() {
+  const deckMode = document.querySelector('input[name="flash-deck"]:checked')?.value || 'all';
+  const side = document.querySelector('input[name="flash-side"]:checked')?.value || 'char';
+  const deck = buildFlashDeck(deckMode);
+
+  if (!deck.length) {
+    alert('No cards in this deck. Try another option or mark some characters first.');
+    return;
+  }
+
+  flashState.deck = deck;
+  flashState.index = 0;
+  flashState.flipped = false;
+  flashState.know = 0;
+  flashState.miss = 0;
+  flashState.side = side;
+  flashState.active = true;
+
+  $('#flash-setup').hidden = true;
+  $('#flash-done').hidden = true;
+  $('#flash-session').hidden = false;
+  showFlashCard();
+}
+
+function exitFlashSession() {
+  flashState.active = false;
+  renderFlashSetup();
+}
+
+function finishFlashSession() {
+  flashState.active = false;
+  const total = flashState.know + flashState.miss;
+  const accuracy = total ? Math.round((flashState.know / total) * 100) : 0;
+
+  $('#flash-session').hidden = true;
+  $('#flash-setup').hidden = true;
+  $('#flash-done').hidden = false;
+
+  $('#flash-done-summary').textContent =
+    total === 0
+      ? 'No cards were reviewed.'
+      : `You reviewed ${total} card${total === 1 ? '' : 's'} with ${accuracy}% accuracy.`;
+
+  $('#flash-done-stats').innerHTML = `
+    <div class="stat-chip"><strong>${flashState.know}</strong><span>Got it</span></div>
+    <div class="stat-chip"><strong>${flashState.miss}</strong><span>Again</span></div>
+    <div class="stat-chip"><strong>${accuracy}%</strong><span>Accuracy</span></div>
+  `;
+
+  updateProgress();
+}
+
+function initFlashcards() {
+  $('#flash-start')?.addEventListener('click', startFlashSession);
+  $('#flash-exit')?.addEventListener('click', exitFlashSession);
+  $('#flash-flip')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    flipFlashCard();
+  });
+  $('#flash-card')?.addEventListener('click', () => {
+    if (!flashState.flipped) flipFlashCard();
+  });
+  $('#flash-know')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    gradeFlashCard(true);
+  });
+  $('#flash-miss')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    gradeFlashCard(false);
+  });
+  $('#flash-speak')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = currentFlashCard();
+    if (item) speak(item.char);
+  });
+  $('#flash-restart')?.addEventListener('click', startFlashSession);
+  $('#flash-back-setup')?.addEventListener('click', exitFlashSession);
+
+  renderFlashSetup();
 }
 
 function bindEvents() {
@@ -518,7 +834,25 @@ function bindEvents() {
   $('.btn-next').addEventListener('click', () => navigate(1));
 
   document.addEventListener('keydown', (e) => {
-    if (state.selectedIndex === null) return;
+    if (state.view === 'flashcard' && flashState.active) {
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (!flashState.flipped) flipFlashCard();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (flashState.flipped) gradeFlashCard(false);
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (flashState.flipped) gradeFlashCard(true);
+        return;
+      }
+    }
+
+    if (state.view !== 'learning' || state.selectedIndex === null) return;
     if (e.key === 'ArrowLeft') navigate(-1);
     if (e.key === 'ArrowRight') navigate(1);
   });
@@ -537,10 +871,12 @@ function init() {
   document.addEventListener('gesturechange', (e) => e.preventDefault());
   document.addEventListener('gestureend', (e) => e.preventDefault());
 
+  initNavigation();
   renderTabs();
   renderGrid();
   renderDetail();
   initReadings();
+  initFlashcards();
   updateProgress();
   bindEvents();
   bindCanvasDrawing();

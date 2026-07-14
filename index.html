@@ -8,135 +8,244 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="header">
-    <h1>注音 Bopomofo</h1>
-    <p>Learn all 37 Zhuyin characters — write, pronounce, and practice</p>
-    <div class="progress-bar-wrap">
-      <div class="progress-label">
-        <span>Your progress</span>
-        <span class="progress-count">0 / 37 learned</span>
+  <nav class="app-nav" aria-label="Main">
+    <div class="app-nav-inner">
+      <a href="#learning" class="brand" data-view="learning">
+        <span class="brand-mark" aria-hidden="true">ㄅ</span>
+        <span class="brand-text">
+          <strong>Bopo</strong>
+          <span>注音</span>
+        </span>
+      </a>
+      <div class="app-nav-links" role="tablist" aria-label="Sections">
+        <button type="button" class="nav-link active" role="tab" aria-selected="true" data-view="learning">Learning</button>
+        <button type="button" class="nav-link" role="tab" aria-selected="false" data-view="flashcard">Flashcard</button>
+        <button type="button" class="nav-link" role="tab" aria-selected="false" data-view="sentences">Sentences</button>
       </div>
-      <div class="progress-bar">
-        <div class="progress-fill"></div>
+      <div class="app-nav-progress" aria-hidden="true">
+        <span class="nav-progress-count">0/37</span>
+        <div class="nav-progress-bar"><div class="nav-progress-fill"></div></div>
+      </div>
+    </div>
+  </nav>
+
+  <header class="header">
+    <div class="header-inner">
+      <h1>注音 Bopomofo</h1>
+      <p class="header-sub">Learn all 37 Zhuyin characters — write, pronounce, and practice</p>
+      <div class="progress-bar-wrap">
+        <div class="progress-label">
+          <span>Your progress</span>
+          <span class="progress-count">0 / 37 learned</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <nav class="tabs" aria-label="Character categories"></nav>
+    <!-- ── Learning ── -->
+    <section id="view-learning" class="view view-active" data-view-panel="learning" aria-label="Learning">
+      <nav class="tabs" aria-label="Character categories"></nav>
+      <section class="grid" aria-label="Zhuyin characters"></section>
 
-    <section class="grid" aria-label="Zhuyin characters"></section>
+      <div class="empty-hint">
+        <div class="big-char">ㄅ</div>
+        <p>Click a character to hear it · double-click for an example word</p>
+      </div>
 
-    <div class="empty-hint">
-      <div class="big-char">ㄅ</div>
-      <p>Click a character to hear it · double-click for an example word</p>
-    </div>
-
-    <section class="detail" aria-label="Character detail">
-      <div class="detail-header">
-        <div class="detail-char-wrap">
-          <span class="detail-char" aria-hidden="true">ㄅ</span>
-          <div class="detail-meta">
-            <h2>ㄅ</h2>
-            <p class="pinyin">Pinyin: b</p>
+      <section class="detail" aria-label="Character detail">
+        <div class="detail-header">
+          <div class="detail-char-wrap">
+            <span class="detail-char" aria-hidden="true">ㄅ</span>
+            <div class="detail-meta">
+              <h2>ㄅ</h2>
+              <p class="pinyin">Pinyin: b</p>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-primary btn-pronounce" type="button">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+              Pronounce
+            </button>
+            <button class="btn btn-secondary btn-learn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+              Mark learned
+            </button>
           </div>
         </div>
-        <div class="detail-actions">
-          <button class="btn btn-primary btn-pronounce" type="button">
+
+        <div class="detail-body">
+          <div class="panel">
+            <h3>Writing practice</h3>
+            <p class="pronunciation-tip"></p>
+            <ol class="strokes"></ol>
+            <p class="canvas-hint">Trace the outline with your finger — you'll hear the pronunciation when you finish</p>
+            <div class="canvas-wrap" id="canvas-wrap">
+              <span id="canvas-outline-text" class="canvas-outline-text" aria-hidden="true"></span>
+              <canvas id="write-canvas" class="canvas-draw-layer" width="280" height="280" aria-label="Writing practice canvas"></canvas>
+            </div>
+            <div class="canvas-actions">
+              <button class="btn btn-secondary btn-clear-canvas" type="button">Clear canvas</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Example words</h3>
+            <ul class="examples"></ul>
+          </div>
+        </div>
+
+        <div class="detail-nav">
+          <button class="btn btn-secondary btn-prev" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            Previous
+          </button>
+          <button class="btn btn-secondary btn-next" type="button">
+            Next
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+      </section>
+    </section>
+
+    <!-- ── Flashcard ── -->
+    <section id="view-flashcard" class="view" data-view-panel="flashcard" hidden aria-label="Flashcards">
+      <div class="flash-setup" id="flash-setup">
+        <div class="flash-hero">
+          <h2>Flashcards</h2>
+          <p>Drill Zhuyin with flip cards. Mark what you know — tougher cards come back more often.</p>
+        </div>
+
+        <div class="flash-options">
+          <fieldset class="flash-fieldset">
+            <legend>Deck</legend>
+            <label class="choice"><input type="radio" name="flash-deck" value="all" checked> All 37 characters</label>
+            <label class="choice"><input type="radio" name="flash-deck" value="initials"> Initials (聲母)</label>
+            <label class="choice"><input type="radio" name="flash-deck" value="medials"> Medials (介音)</label>
+            <label class="choice"><input type="radio" name="flash-deck" value="finals"> Finals (韻母)</label>
+            <label class="choice"><input type="radio" name="flash-deck" value="unlearned"> Not yet learned</label>
+            <label class="choice"><input type="radio" name="flash-deck" value="learned"> Already learned</label>
+            <label class="choice"><input type="radio" name="flash-deck" value="weak"> Needs review</label>
+          </fieldset>
+
+          <fieldset class="flash-fieldset">
+            <legend>Front of card</legend>
+            <label class="choice"><input type="radio" name="flash-side" value="char" checked> Show Zhuyin → recall pinyin</label>
+            <label class="choice"><input type="radio" name="flash-side" value="pinyin"> Show pinyin → recall Zhuyin</label>
+          </fieldset>
+        </div>
+
+        <div class="flash-stats-preview" id="flash-stats-preview"></div>
+
+        <button type="button" class="btn btn-primary btn-lg" id="flash-start">Start practice</button>
+      </div>
+
+      <div class="flash-session" id="flash-session" hidden>
+        <div class="flash-toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" id="flash-exit">Exit</button>
+          <div class="flash-session-progress">
+            <span id="flash-progress-label">1 / 10</span>
+            <div class="flash-bar"><div class="flash-bar-fill" id="flash-bar-fill"></div></div>
+          </div>
+          <div class="flash-session-score">
+            <span class="score-know" id="flash-know-count">0</span>
+            <span class="score-sep">/</span>
+            <span class="score-miss" id="flash-miss-count">0</span>
+          </div>
+        </div>
+
+        <div class="flash-stage">
+          <button type="button" class="flash-card" id="flash-card" aria-label="Flashcard — click to flip">
+            <div class="flash-card-inner" id="flash-card-inner">
+              <div class="flash-face flash-front">
+                <span class="flash-prompt" id="flash-front"></span>
+                <span class="flash-hint">Tap to flip</span>
+              </div>
+              <div class="flash-face flash-back">
+                <span class="flash-answer" id="flash-back-main"></span>
+                <span class="flash-answer-sub" id="flash-back-sub"></span>
+                <span class="flash-tip" id="flash-back-tip"></span>
+                <span class="flash-example" id="flash-back-example"></span>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div class="flash-controls">
+          <button type="button" class="btn btn-speak" id="flash-speak" aria-label="Pronounce">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
-            Pronounce
+            Hear
           </button>
-          <button class="btn btn-secondary btn-learn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-            Mark learned
-          </button>
-        </div>
-      </div>
-
-      <div class="detail-body">
-        <div class="panel">
-          <h3>Writing practice</h3>
-          <p class="pronunciation-tip"></p>
-          <ol class="strokes"></ol>
-          <p class="canvas-hint">Trace the outline with your finger — you'll hear the pronunciation when you finish</p>
-          <div class="canvas-wrap" id="canvas-wrap">
-            <span id="canvas-outline-text" class="canvas-outline-text" aria-hidden="true"></span>
-            <canvas id="write-canvas" class="canvas-draw-layer" width="280" height="280" aria-label="Writing practice canvas"></canvas>
-          </div>
-          <div class="canvas-actions">
-            <button class="btn btn-secondary btn-clear-canvas" type="button">Clear canvas</button>
+          <button type="button" class="btn btn-flip" id="flash-flip">Flip</button>
+          <div class="flash-grade" id="flash-grade" hidden>
+            <button type="button" class="btn btn-miss" id="flash-miss">Again</button>
+            <button type="button" class="btn btn-know" id="flash-know">Got it</button>
           </div>
         </div>
 
-        <div class="panel">
-          <h3>Example words</h3>
-          <ul class="examples"></ul>
-        </div>
+        <p class="flash-keys">Space flip · ← Again · → Got it</p>
       </div>
 
-      <div class="detail-nav">
-        <button class="btn btn-secondary btn-prev" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-          Previous
-        </button>
-        <button class="btn btn-secondary btn-next" type="button">
-          Next
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
+      <div class="flash-done" id="flash-done" hidden>
+        <div class="flash-done-card">
+          <h2>Session complete</h2>
+          <p class="flash-done-summary" id="flash-done-summary"></p>
+          <div class="flash-done-stats" id="flash-done-stats"></div>
+          <div class="flash-done-actions">
+            <button type="button" class="btn btn-primary" id="flash-restart">Practice again</button>
+            <button type="button" class="btn btn-secondary" id="flash-back-setup">Change deck</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="readings" aria-label="Reading practice">
-      <div class="reading-card">
-        <div class="reading-header">
-          <h2>Sentences</h2>
-          <p>Beginner sentences with Zhuyin above each character</p>
-        </div>
-        <label class="reading-label" for="sentence-select">Choose a sentence</label>
-        <select id="sentence-select" class="reading-select">
-          <option value="">— Select a sentence —</option>
-          <option value="hello">你好嗎？</option>
-          <option value="fine">我很好。</option>
-          <option value="thanks">謝謝你。</option>
-          <option value="what">這是什麼？</option>
-          <option value="student">我是學生。</option>
-          <option value="weather">今天天氣很好。</option>
-          <option value="apple">我喜歡吃蘋果。</option>
-          <option value="time">現在幾點？</option>
-          <option value="come-in">請進來。</option>
-          <option value="goodbye">明天見！</option>
-        </select>
-        <div id="sentence-content" class="reading-content empty">Select a sentence above</div>
+    <!-- ── Sentences ── -->
+    <section id="view-sentences" class="view" data-view-panel="sentences" hidden aria-label="Sentences">
+      <div class="view-intro">
+        <h2>Sentences</h2>
+        <p>Practice reading with Zhuyin above each character. Click a character to hear it.</p>
       </div>
 
-      <div class="reading-card">
-        <div class="reading-header">
-          <h2>Paragraphs</h2>
-          <p>Simple paragraphs with Zhuyin above each character</p>
+      <div class="readings">
+        <div class="reading-card">
+          <div class="reading-header">
+            <h3>Sentences</h3>
+            <p>Beginner sentences with Zhuyin above each character</p>
+          </div>
+          <label class="reading-label" for="sentence-select">Choose a sentence</label>
+          <select id="sentence-select" class="reading-select">
+            <option value="">— Select a sentence —</option>
+          </select>
+          <div id="sentence-content" class="reading-content empty">Select a sentence above</div>
         </div>
-        <label class="reading-label" for="paragraph-select">Choose a paragraph</label>
-        <select id="paragraph-select" class="reading-select">
-          <option value="">— Select a paragraph —</option>
-          <option value="intro">自我介紹</option>
-          <option value="morning">我的早晨</option>
-          <option value="family">我的家人</option>
-          <option value="school">在學校</option>
-          <option value="weekend">週末計畫</option>
-        </select>
-        <div id="paragraph-content" class="reading-content empty">Select a paragraph above</div>
+
+        <div class="reading-card">
+          <div class="reading-header">
+            <h3>Paragraphs</h3>
+            <p>Simple paragraphs with Zhuyin above each character</p>
+          </div>
+          <label class="reading-label" for="paragraph-select">Choose a paragraph</label>
+          <select id="paragraph-select" class="reading-select">
+            <option value="">— Select a paragraph —</option>
+          </select>
+          <div id="paragraph-content" class="reading-content empty">Select a paragraph above</div>
+        </div>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    Bopo — a simple Zhuyin learning tool. Progress is saved in your browser.
+    Bopo — a Zhuyin learning tool. Progress is saved in your browser.
   </footer>
 
-  <script src="js/data.js?v=10"></script>
-  <script src="js/app.js?v=10"></script>
+  <script src="js/data.js?v=11"></script>
+  <script src="js/app.js?v=11"></script>
 </body>
 </html>

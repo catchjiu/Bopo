@@ -4,11 +4,13 @@ A small web app to help you learn all **37 Zhuyin (注音 / Bopomofo)** characte
 
 ## Features
 
+- **Three sections** — Learning, Flashcard, and Sentences (via the top menu)
 - **37 characters** organized into initials (聲母), medials (介音), and finals (韻母)
 - **Pronunciation** — hear each character and example word via your browser's speech synthesis (zh-TW)
 - **Writing practice** — stroke-order tips and a canvas to trace each character
-- **5 example words** per character with Zhuyin spelling and English meaning
-- **Progress tracking** — mark characters as learned; progress is saved in localStorage
+- **Flashcards** — flip cards, deck filters, Again / Got it grading, weak-card requeue, keyboard shortcuts
+- **Sentences & paragraphs** — reading practice with Zhuyin ruby text
+- **Progress tracking** — mark characters as learned; flashcard stats saved in localStorage
 
 ## Quick start
 
